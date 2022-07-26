@@ -1,6 +1,25 @@
 # Modification Notes
-breaks base renderer; need refactoring upstream
-render_inner returns a list 
+
+Given a md, it builds a ofjustpy html component.
+
+Key points:
+* render_mditem  should return its content as dict if asdict is set true
+* We force subchild of list and heading to be stubs and not return as dict. 
+There is not much point in returing dict for subtree containing too many different
+mditems. 
+currently render_link, para, img can be returned as dict. But list_item and list should
+return stubs. 
+
+* Heading level 6 is used as view directive
+to plug a renderer for list item use
+```
+###### list_item_view_handler:href_image_viewer
+```
+
+see example directory. 
+
+
+
 
 
 <h1>mistletoe<img src='https://cdn.rawgit.com/miyuchina/mistletoe/master/resources/logo.svg' align='right' width='128' height='128'></h1>
