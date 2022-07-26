@@ -1,4 +1,5 @@
 from unittest import TestCase, mock
+import mistletoe.latex_renderer
 from mistletoe.latex_renderer import LaTeXRenderer
 from mistletoe import markdown
 
@@ -28,8 +29,19 @@ class TestLaTeXRenderer(TestCase):
 
     def test_inline_code(self):
         func_path = 'mistletoe.latex_renderer.LaTeXRenderer.render_raw_text'
-        with mock.patch(func_path, return_value='inner'):
-            self._test_token('InlineCode', '\\verb|inner|')
+
+        for content, output in {'inner': '\\verb|inner|',
+                                'a + b': '\\verb|a + b|',
+                                'a | b': '\\verb!a | b!',
+                                '|ab!|': '\\verb"|ab!|"',
+                               }.items():
+            with mock.patch(func_path, return_value=content):
+                self._test_token('InlineCode', output, content=content)
+
+        content = mistletoe.latex_renderer.verb_delimiters
+        with self.assertRaises(RuntimeError):
+            with mock.patch(func_path, return_value=content):
+                self._test_token('InlineCode', None, content=content)
 
     def test_strikethrough(self):
         self._test_token('Strikethrough', '\\sout{inner}')

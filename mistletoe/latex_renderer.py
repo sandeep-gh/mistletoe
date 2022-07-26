@@ -5,6 +5,16 @@ LaTeX renderer for mistletoe.
 from itertools import chain
 import mistletoe.latex_token as latex_token
 from mistletoe.base_renderer import BaseRenderer
+import string
+
+
+# (customizable) delimiters for inline code
+verb_delimiters = string.punctuation + string.digits
+for delimiter in '*':  # remove invalid delimiters
+    verb_delimiters.replace(delimiter, '')
+for delimiter in reversed('|!"\'=+'):  # start with most common delimiters
+    verb_delimiters = delimiter + verb_delimiters.replace(delimiter, '')
+
 
 class LaTeXRenderer(BaseRenderer):
     def __init__(self, *extras):
@@ -14,6 +24,7 @@ class LaTeXRenderer(BaseRenderer):
         """
         tokens = self._tokens_from_module(latex_token)
         self.packages = {}
+        self.verb_delimiters = verb_delimiters
         super().__init__(*chain(tokens, extras))
 
     def render_strong(self, token):
@@ -23,7 +34,18 @@ class LaTeXRenderer(BaseRenderer):
         return '\\textit{{{}}}'.format(self.render_inner(token))
 
     def render_inline_code(self, token):
-        return '\\verb|{}|'.format(self.render_raw_text(token.children[0], escape=False))
+        content = self.render_raw_text(token.children[0], escape=False)
+
+        # search for delimiter not present in content
+        for delimiter in self.verb_delimiters:
+            if delimiter not in content:
+                break
+
+        if delimiter in content:  # no delimiter found
+            raise RuntimeError('Unable to find delimiter for verb macro')
+
+        template = '\\verb{delimiter}{content}{delimiter}'
+        return template.format(delimiter=delimiter, content=content)
 
     def render_strikethrough(self, token):
         self.packages['ulem'] = ['normalem']
