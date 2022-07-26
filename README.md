@@ -1,3 +1,8 @@
+# Modification Notes
+breaks base renderer; need refactoring upstream
+render_inner returns a list 
+
+
 <h1>mistletoe<img src='https://cdn.rawgit.com/miyuchina/mistletoe/master/resources/logo.svg' align='right' width='128' height='128'></h1>
 
 [![Build Status][build-badge]][travis]

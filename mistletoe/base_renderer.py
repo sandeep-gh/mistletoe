@@ -106,8 +106,8 @@ class BaseRenderer(object):
         Arguments:
             token: a branch node who has children attribute.
         """
-        return ''.join(map(self.render, token.children))
-
+        return [_ for _ in map(self.render, token.children) if _ is not None]
+    
     def __enter__(self):
         """
         Make renderer classes into context managers.
