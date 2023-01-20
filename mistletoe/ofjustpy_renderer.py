@@ -15,7 +15,9 @@ from mistletoe.base_renderer import BaseRenderer
 from mistletoe.ofjustpy_renderer_helper import openCtx, openCloseCtx, captureViewDirective, renderDictOrHC
 from inspect import getmembers, isfunction
 import ofjustpy as oj
-
+from tailwind_tags import ovf, y, auto, flx
+import traceback
+import sys
 class OfjustpyRenderer(BaseRenderer):
     """
     HTML renderer class.
@@ -86,8 +88,12 @@ class OfjustpyRenderer(BaseRenderer):
     @renderDictOrHC
     def render_image(self, token: span_token.Image, asdict=False) -> str:
         if asdict:
+            print ("----------- render image called with as dict -------")
+            traceback.print_stack(file=sys.stdout)
             return Dict({'img':
                          { 'src': token.src, 'title': token.title, 'alt': self.render_to_plain(token)}                })
+        
+        # code should go beyond this point -- for now image is always returned to owner as dict
         raise ValueError
         template = '<img src="{}" alt="{}"{} />'
         if token.title:
@@ -152,6 +158,13 @@ class OfjustpyRenderer(BaseRenderer):
             heading_text = inner[0].rawText
         except:
             raise ValueError("Cannot deduce heading text for  heading item..markdown content too fancy for this renderer")
+        print ("===========start===========")
+
+        print ("called render_heading with text : ", heading_text)
+        print ("inner =  : ", inner)
+        print ("level = : ", token.level)
+        print ("content_stub = ", content_stub)
+        print ("==============================")
         
         return oj.Subsubsection_(f"heading_{self.key_cursor}", heading_text, content_stub)
 
@@ -174,6 +187,7 @@ class OfjustpyRenderer(BaseRenderer):
         vv = [_ for _ in self.render_inner(token) if _ is not None]
         pref = oj.P_(f"P_{self.key_cursor}", cgens=vv)
         return pref
+    
     def render_block_code(self, token: block_token.BlockCode) -> str:
         template = '<pre><code{attr}>{inner}</code></pre>'
         if token.language:
@@ -269,7 +283,7 @@ class OfjustpyRenderer(BaseRenderer):
         #self.footnotes.update(token.footnotes) #TODO
         inner = [_ for _ in self.render_inner(token) if _ is not None]
         if inner:
-            return oj.StackV_(f"document_{self.key_cursor}", cgens = inner)
+            return oj.StackV_(f"document_{self.key_cursor}", cgens = inner, pcp=[ovf/y/auto, flx.one])
         # if there is no content then don't create an htmlcomponent 
         return None
 

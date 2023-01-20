@@ -35,7 +35,7 @@ def captureViewDirective(func):
             else:
                 renderer_obj.mditem_view_handlers[handler_type] = None
 
-            print ("adding view directive = ", handler_type, " ",  handler_funcname) 
+            #print ("adding view directive = ", handler_type, " ",  handler_funcname) 
 
             return
         else:
@@ -54,7 +54,7 @@ def pop_covering_ctx(covering_ctx_stack, ctxtype):
     global ctx_depth
     last_ctx = covering_ctx_stack.pop()
     spaces = "".join([" " for i in range(ctx_depth)])
-    print (f"{spaces} </{last_ctx.ctxtype}>")
+    #print (f"{spaces} </{last_ctx.ctxtype}>")
     ctx_depth -= 1
     while True:
         if not covering_ctx_stack:
@@ -63,7 +63,7 @@ def pop_covering_ctx(covering_ctx_stack, ctxtype):
             break
         last_ctx = covering_ctx_stack.pop()
         spaces = "".join([" " for i in range(ctx_depth)])
-        print (f"{spaces} </{last_ctx.ctxtype}>")
+        #print (f"{spaces} </{last_ctx.ctxtype}>")
         ctx_depth -= 1
 
         
@@ -80,17 +80,22 @@ def append_covering_ctx(covering_ctx_stack, ctxtype,  ctxhandle):
 
     if needs_pop:
         pop_covering_ctx(covering_ctx_stack, ctxtype)
-    spaces = "".join([" " for i in range(ctx_depth)])
-    print(f"{spaces} <", ctxtype, ">")
+    #spaces = "".join([" " for i in range(ctx_depth)])
+    #print(f"{spaces} <", ctxtype, ">")
+
     covering_ctx_stack.append(ctx(ctxtype,  ctxhandle))
     ctx_depth += 1
 
         
 def attach_to_covering_ctx(covering_ctx_stack, ref):
+    print("&&&&>>>>. attach to covering context ", ref.hcgen)
+    print ("covering_ctx_stack = ", covering_ctx_stack)
     top_ctx = covering_ctx_stack[-1]
     if top_ctx.ctxhandle is None:
+        print ("&&&& not attached since last context is None")
         return ref
     else:
+        print("&&&&>>>>. attach to covering context")
         print (f"{ref.key} is-attached-to {top_ctx.ctxhandle.key}")
         top_ctx.ctxhandle.cgens.append(ref)
         return None
@@ -100,7 +105,7 @@ def openCtx(func):
     def wrapper(*args, **kwargs):
         renderer_obj = args[0]
         token = args[1]
-
+        print ("---begin:openCtx --: for func = ", func, " token = ", token)
         mditem_ctxstack = renderer_obj.mditem_ctxstack
         mditem_name = func.__name__.replace("render_", "")
         if mditem_name == "heading":
@@ -118,6 +123,7 @@ def openCtx(func):
 def openCloseCtx(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        print ("==>begin<== openCloseCtx wrapper invoked for func ", func)
         renderer_obj = args[0]
         token = args[1]
 
@@ -128,9 +134,14 @@ def openCloseCtx(func):
         
         key_cursor = 0
         append_covering_ctx(mditem_ctxstack,  mditem_name,  None)
-        res = func(*args,  **kwargs)
+        hcstub = func(*args,  **kwargs)
         pop_covering_ctx(mditem_ctxstack, mditem_name)
-        return res
+        print ("what the hell is mditem_ctxstack = ", mditem_ctxstack)
+        # no element covers document covering context
+        if mditem_name != "document":
+            hcstub = attach_to_covering_ctx(mditem_ctxstack, hcstub)
+        print ("==>finished<== openCloseCtx wrapper invoked for func ", func)
+        return hcstub
 
     return wrapper
 
@@ -143,6 +154,7 @@ def renderDictOrHC(func):
     """
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        print ("~~BEGIN~~~Calling renderDictOrHC for func = ", func)
         renderer_obj = args[0]
         token = args[1]
         mditem_ctxstack = renderer_obj.mditem_ctxstack
@@ -161,6 +173,7 @@ def renderDictOrHC(func):
             #don't create htmlcomponent
             #simply return all attributes as Dict object
             res = func(*args, asdict=True)
+            print ("~~END-asdict~~~Calling renderDictOrHC for func = ", func)
             return res
         else:
             
@@ -174,12 +187,18 @@ def renderDictOrHC(func):
                     renderer_obj.parsing_in_meta_mode = False
                     mditem_view_stub = renderer_obj.mditem_view_handlers[view_func_name](res, renderer_obj.key_cursor)
                     renderer_obj.key_cursor += 1
+                    print ("~~END-patanahi~~~Calling renderDictOrHC for func = ", func)
                     return attach_to_covering_ctx(mditem_ctxstack,  mditem_view_stub)
 
 
             #create html component stub
             hcstub = func(*args, **kwargs)
-            hcstub = attach_to_covering_ctx(mditem_ctxstack, hcstub)
+            # we cannot attach to covering context here
+            # this mditem may itself have opened its own context
+            # in a sense we are trying to attach to itself.
+            # do the attachement after openCloseCtx
+            # hcstub = attach_to_covering_ctx(mditem_ctxstack, hcstub)
+            # print ("~~END-as-hcstub~~~Calling renderDictOrHC for func = ", func)
             return hcstub
         #return inner
 
